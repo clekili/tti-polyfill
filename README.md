@@ -25,6 +25,8 @@ g.o.observe({entryTypes:['longtask']})}}();
 
 *__Note:__ this snippet is a temporary workaround, until browsers implement level 2 of the Performance Observer spec and include the [`buffered`](https://w3c.github.io/performance-timeline/#dom-performanceobserverinit-buffered) flag.*
 
+*__Note 2:__ Step 1 mentioned above can be skipped when using `useBufferedObserver` option at initialization. Only works in recent versions of modern browsers(i.e. [Chrome 81+](https://www.chromestatus.com/feature/6306761277440000)).
+
 The second step is to import the module into your application code and invoke the `getFirstConsistentlyInteractive()` method. The `getFirstConsistentlyInteractive()` method returns a promise that resolves to the TTI metric value (in milliseconds since navigation start). If no TTI value can be found, or if the browser doesn't support all the APIs required to detect TTI, the promise resolves to `null`.
 
 ```js
@@ -59,6 +61,13 @@ The following table outlines the configuration options you can pass to the `getF
     <td><code>boolean</code></td>
     <td>
       When true (the default), a mutation observer is used to detect when added DOM elements will create additional network requests. This can be disabled to improve performance in cases where you know no additional request-creating DOM elements will be added.
+    </td>
+  </tr>
+  <tr valign="top">
+    <td><code>useBufferedObserver</code></td>
+    <td><code>boolean</code></td>
+    <td>
+      When true, buffered performance entries, buffered via `PerformanceObserver`, emitted before the initialization of tti-polyfill will be taken into account. Defautls to `false`.
     </td>
   </tr>
 </table>
