@@ -32,35 +32,42 @@ export default class FirstConsistentlyInteractiveDetector {
   constructor(config = {}) {
     this._useMutationObserver = !!config.useMutationObserver;
 
+    // If useBufferedObserver is null, default to using window.__tti for
+    // observing performance entries emitted prior to this detector being
+    // initialized.
+    this._useBufferedObserver = config.useBufferedObserver || null;
+
     // If minValue is null, by default it is DOMContentLoadedEnd.
     this._minValue = config.minValue || null;
 
-    /** @type {Array<PerformanceEntry>|undefined} */
-    const snippetEntries = window.__tti && window.__tti.e;
+    if (!this._useBufferedObserver) {
+      /** @type {Array<PerformanceEntry>|undefined} */
+      const snippetEntries = window.__tti && window.__tti.e;
 
-    /** @type {PerformanceObserver|undefined} */
-    const snippetObserver = window.__tti && window.__tti.o;
+      /** @type {PerformanceObserver|undefined} */
+      const snippetObserver = window.__tti && window.__tti.o;
 
-    // If we recorded some long tasks before this class was initialized,
-    // consume them now.
-    if (snippetEntries) {
-      log(`Consuming the long task entries already recorded.`);
+      // If we recorded some long tasks before this class was initialized,
+      // consume them now.
+      if (snippetEntries) {
+        log(`Consuming the long task entries already recorded.`);
 
-      this._longTasks = snippetEntries.map((performanceEntry) => {
-        return {
-          start: performanceEntry.startTime,
-          end: performanceEntry.startTime + performanceEntry.duration,
-        };
-      });
-    } else {
-      this._longTasks = [];
-    }
+        this._longTasks = snippetEntries.map((performanceEntry) => {
+          return {
+            start: performanceEntry.startTime,
+            end: performanceEntry.startTime + performanceEntry.duration,
+          };
+        });
+      } else {
+        this._longTasks = [];
+      }
 
-    // If we had a long task observer attached by the snippet, disconnect it
-    // here. We will be adding a new long task observer soon with a more
-    // complex callback.
-    if (snippetObserver) {
-      snippetObserver.disconnect();
+      // If we had a long task observer attached by the snippet, disconnect it
+      // here. We will be adding a new long task observer soon with a more
+      // complex callback.
+      if (snippetObserver) {
+        snippetObserver.disconnect();
+      }
     }
 
     this._networkRequests = [];
@@ -179,6 +186,29 @@ export default class FirstConsistentlyInteractiveDetector {
   }
 
   /**
+   * Initializes buffered observation of 'longtask' and 'resource' type
+   * performance events.
+   */
+  _initBufferedObservation() {
+    try {
+      this._performanceObserver.observe({type: 'longtask', buffered: true});
+      this._performanceObserver.observe({type: 'resource', buffered: true});
+    } catch (e) {
+      log(`Buffered observation failed to initialize, ` +
+          `defaulting to non-buffered observation: `, e);
+      this._initObservation();
+    }
+  }
+
+  /**
+   * Initializes observation of 'longtask' and 'resource' type performance
+   * events.
+   */
+  _initObservation() {
+    this._performanceObserver.observe({entryTypes: ['longtask', 'resource']});
+  }
+
+  /**
    * Adds
    */
   _registerPerformanceObserver() {
@@ -193,7 +223,11 @@ export default class FirstConsistentlyInteractiveDetector {
         }
       }
     });
-    this._performanceObserver.observe({entryTypes: ['longtask', 'resource']});
+    if (this._useBufferedObserver) {
+      this._initBufferedObservation();
+    } else {
+      this._initObservation();
+    }
   }
 
   /**

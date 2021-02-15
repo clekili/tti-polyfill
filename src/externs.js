@@ -37,6 +37,7 @@ window.__tti.e;
 /**
  * @typedef {{
  *   useMutationObserver: (boolean|undefined),
+ *   useBufferedObserver: (boolean|undefined),
  * }}
  */
 var FirstConsistentlyInteractiveDetectorInit;
@@ -51,7 +52,9 @@ function PerformanceObserverEntry() {}
 /**
  * Options for the PerformanceObserver.
  * @typedef {{
- *   entryTypes: (Array<string>),
+ *   entryTypes: (Array<string>|undefined),
+ *   type: (string|undefined),
+ *   buffered: (boolean|undefined),
  * }}
  */
 var PerformanceObserverInit;
